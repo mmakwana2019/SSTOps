@@ -1,0 +1,67 @@
+steps:
+  # Step 1: Install root and workspace dependencies
+  - name: 'node:20'
+    entrypoint: 'npm'
+    args: ['ci']
+    id: 'install-deps'
+
+  # Step 2: Run Linters & Formatters
+  - name: 'node:20'
+    entrypoint: 'npm'
+    args: ['run', 'lint']
+    id: 'lint-check'
+    waitFor: ['install-deps']
+
+  # Step 3: Run Unit & Firestore Rules Tests (using firebase emulators)
+  - name: 'node:20'
+    entrypoint: 'npm'
+    args: ['run', 'test:rules']
+    id: 'firestore-rules-tests'
+    waitFor: ['install-deps']
+
+  # Step 4: Build Backend Container Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/sstops-backend:latest', './backend']
+    id: 'build-backend-image'
+    waitFor: ['firestore-rules-tests']
+
+  # Step 5: Push Backend Image to Artifact Registry / Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/sstops-backend:latest']
+    id: 'push-backend-image'
+    waitFor: ['build-backend-image']
+
+  # Step 6: Deploy Backend Microservices to Cloud Run (Stateless, containerized)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'sstops-backend'
+      - '--image=gcr.io/$PROJECT_ID/sstops-backend:latest'
+      - '--region=asia-south1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--min-instances=0' # Configure to scale down to 0 for tournament-ops (bursty usage)
+    id: 'deploy-backend-run'
+    waitFor: ['push-backend-image']
+
+  # Step 7: Build Frontend React App
+  - name: 'node:20'
+    entrypoint: 'npm'
+    args: ['run', 'build', '--workspace=frontend']
+    id: 'build-frontend'
+    waitFor: ['firestore-rules-tests']
+
+  # Step 8: Deploy Frontend to Firebase Hosting
+  - name: 'node:20'
+    entrypoint: 'npx'
+    args: ['firebase-tools', 'deploy', '--only', 'hosting', '--token', '$FIREBASE_TOKEN']
+    id: 'deploy-hosting'
+    waitFor: ['build-frontend']
+
+images:
+  - 'gcr.io/$PROJECT_ID/sstops-backend:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

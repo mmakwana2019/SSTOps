@@ -1,0 +1,29 @@
+{
+  "name": "sstops-root",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "functions",
+    "tests"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:emulators": "firebase emulators:start --only firestore,pubsub,functions,hosting",
+    "dev": "concurrently -n \"BACKEND,FRONTEND,EMULATOR\" -c \"blue,green,yellow\" \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:emulators\"",
+    "test:rules": "firebase emulators:exec --only firestore \"npm run test:rules --workspace=tests\"",
+    "test:backend": "npm run test:contract --workspace=tests",
+    "test:frontend": "npm run test --workspace=frontend",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.5",
+    "firebase-tools": "^13.8.3"
+  }
+}

@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper to check if user is logged in
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Helper to get user data from the database
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Helper to check if user has a specific staff role
+    function hasRole(role) {
+      return isAuth() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == role;
+    }
+
+    // Helper to check if user is any staff role
+    function isStaff() {
+      return isAuth() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        (getUserData().role == 'security' || 
+         getUserData().role == 'medical' || 
+         getUserData().role == 'facilities' || 
+         getUserData().role == 'command');
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read, write: if isAuth() && request.auth.uid == userId;
+      allow read: if isStaff();
+    }
+
+    // Tickets
+    match /tickets/{ticketId} {
+      allow read: if isAuth() && (resource.data.userId == request.auth.uid || isStaff());
+      allow write: if isStaff();
+    }
+
+    // Incidents
+    match /incidents/{incidentId} {
+      allow read: if isAuth();
+      allow write: if isStaff();
+    }
+
+    // Gate Stats
+    match /gateStats/{gateId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    // Fixtures
+    match /fixtures/{fixtureId} {
+      allow read: if true;
+      allow write: if hasRole('command');
+    }
+  }
+}
