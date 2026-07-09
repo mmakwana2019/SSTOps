@@ -2,7 +2,7 @@ export type Language = 'en' | 'hi' | 'mr';
 
 export const translations = {
   en: {
-    appTitle: 'SSTOps Platform',
+    appTitle: 'Smart Stadiums & Tournament Operations',
     fanPortal: 'Fan Portal',
     controlPortal: 'Control Room',
     tournamentPortal: 'Tournament Ops',

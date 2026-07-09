@@ -66,7 +66,7 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <ShieldCheck size={28} color="var(--primary-color)" />
             <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, background: 'var(--primary-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              SSTOps
+              Smart Stadiums & Tournament Operations
             </h1>
             <span style={{ fontSize: '0.8rem', padding: '2px 8px', borderRadius: '12px', background: 'rgba(0, 242, 254, 0.1)', color: 'var(--primary-color)', fontWeight: 600 }}>
               Live Operations
@@ -176,7 +176,7 @@ export default function App() {
         
         {/* FOOTER */}
         <footer style={{ borderTop: '1px solid var(--border-color)', padding: '20px 40px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-          SSTOps Stadium & Tournament Management. Built with Google Cloud Run, Vertex AI, Firestore & Memorystore.
+          Smart Stadiums & Tournament Operations Management. Built with Google Cloud Run, Vertex AI, Firestore & Memorystore.
         </footer>
 
       </div>
