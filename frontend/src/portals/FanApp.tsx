@@ -26,7 +26,7 @@ export default function FanApp({ lang }: FanAppProps) {
 
   // Generate a mock ticket on startup
   useEffect(() => {
-    axios.post('http://localhost:8082/api/tickets/create', {
+    axios.post('/api/tickets/create', {
       userId: 'user_fan_101',
       matchId: 'final_ipl_2026',
       seat: 'Block 3B, Row G, Seat 24',
@@ -39,7 +39,7 @@ export default function FanApp({ lang }: FanAppProps) {
   // Poll gate stats for real-time updates
   useEffect(() => {
     const fetchGates = () => {
-      axios.get('http://localhost:8082/api/forecasting/surge')
+      axios.get('/api/forecasting/surge')
         .then(res => {
           const predictions = res.data.predictions;
           const mapped = predictions.map((p: any) => ({
@@ -67,7 +67,7 @@ export default function FanApp({ lang }: FanAppProps) {
     setLoadingChat(true);
 
     try {
-      const response = await axios.post('http://localhost:8082/api/gemini/chat', {
+      const response = await axios.post('/api/gemini/chat', {
         prompt: userText,
         language: lang === 'hi' ? 'Hindi' : lang === 'mr' ? 'Marathi' : 'English'
       });
@@ -82,7 +82,7 @@ export default function FanApp({ lang }: FanAppProps) {
   const simulateGateScan = async () => {
     if (!ticketData) return;
     try {
-      const response = await axios.post('http://localhost:8082/api/tickets/scan', {
+      const response = await axios.post('/api/tickets/scan', {
         qrPayload: ticketData.payload
       });
       if (response.data.message === 'Access Granted') {

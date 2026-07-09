@@ -33,7 +33,7 @@ export default function TournamentOps({ lang }: TournamentOpsProps) {
 
   // Sync tickets & scan counts for BQ reconciliation simulation
   const syncReconciliationData = () => {
-    axios.get('http://localhost:8082/api/forecasting/surge')
+    axios.get('/api/forecasting/surge')
       .then(res => {
         // Calculate cumulative count of scanned tickets
         const predictions = res.data.predictions;
@@ -62,7 +62,7 @@ export default function TournamentOps({ lang }: TournamentOpsProps) {
     const officialsList = officialsInput.split(',').map(o => o.trim());
 
     try {
-      const response = await axios.post('http://localhost:8082/api/fixtures/create', {
+      const response = await axios.post('/api/fixtures/create', {
         team1,
         team2,
         date,
@@ -89,7 +89,7 @@ export default function TournamentOps({ lang }: TournamentOpsProps) {
     setLoadingReport(true);
     setReportMarkdown('');
     try {
-      const response = await axios.post('http://localhost:8082/api/gemini/report', {
+      const response = await axios.post('/api/gemini/report', {
         matchId: 'match_final_ipl_2026'
       });
       setReportMarkdown(response.data.report);

@@ -28,7 +28,7 @@ export default function ControlRoom({ lang }: ControlRoomProps) {
 
   // Fetch live stats & forecasting
   const fetchTelemetry = () => {
-    axios.get('http://localhost:8082/api/forecasting/surge')
+    axios.get('/api/forecasting/surge')
       .then(res => {
         const predictions = res.data.predictions;
         const mapped = predictions.map((p: any) => ({
@@ -66,7 +66,7 @@ export default function ControlRoom({ lang }: ControlRoomProps) {
     
     // Simulating vision system edge updates in Firestore if zone incident reported
     if (newTitle.toLowerCase().includes('crowd') || newTitle.toLowerCase().includes('queue')) {
-      axios.post('http://localhost:8082/api/vision/crowd', {
+      axios.post('/api/vision/crowd', {
         zoneId: newLocation.replace(' ', ''),
         count: newSeverity === 'critical' ? 350 : newSeverity === 'high' ? 220 : 120
       }).then(() => fetchTelemetry())
@@ -81,7 +81,7 @@ export default function ControlRoom({ lang }: ControlRoomProps) {
     setLoadingSummary(true);
     try {
       // First seed firestore with current list
-      const response = await axios.post('http://localhost:8082/api/gemini/summarize', {
+      const response = await axios.post('/api/gemini/summarize', {
         shiftId: 'morning_shift_0708'
       });
       setHandoverSummary(response.data.summary);

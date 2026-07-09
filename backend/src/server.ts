@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
+import path from 'path';
 
 // Import routers
 import ticketRouter from './routes/tickets';
@@ -69,24 +70,18 @@ app.use('/api/forecasting', forecastingRouter);
 app.use('/api/fixtures', fixturesRouter);
 app.use('/api/vision', visionRouter);
 
-// Friendly root endpoint
-app.get('/', (req: Request, res: Response) => {
-  res.status(200).json({
-    message: 'Welcome to the Smart Stadiums Operations Platform (SSTOps) API',
-    endpoints: {
-      health: '/api/health',
-      tickets: '/api/tickets',
-      gemini: '/api/gemini',
-      forecasting: '/api/forecasting',
-      fixtures: '/api/fixtures',
-      vision: '/api/vision'
-    }
-  });
-});
-
 // Health Check Endpoint for Cloud Run / GCLB
 app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'HEALTHY', timestamp: new Date() });
+});
+
+// Serve static frontend assets
+const frontendPath = path.join(__dirname, '../../public');
+app.use(express.static(frontendPath));
+
+// Route all other GET requests to the React SPA index.html (fallback)
+app.get('*', (req: Request, res: Response) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 // Error handling middleware
