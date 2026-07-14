@@ -94,6 +94,7 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ error: 'Internal Server Error', details: err.message });
 });
 
+/* istanbul ignore next */
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(JSON.stringify({
