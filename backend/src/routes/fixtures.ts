@@ -33,59 +33,81 @@ router.post('/create', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // 1. Fetch existing fixtures on that date to perform conflict checks
-    const snapshot = await db.collection('fixtures').where('date', '==', date).get();
-    const existingFixtures: any[] = [];
-    snapshot.forEach(doc => {
-      existingFixtures.push({ id: doc.id, ...doc.data() });
-    });
-
-    const conflicts: string[] = [];
-
-    for (const fixture of existingFixtures) {
-      // 1.1 Venue double-booking conflict
-      if (fixture.venue.toLowerCase() === venue.toLowerCase()) {
-        conflicts.push(`Venue Conflict: ${venue} is already booked for ${fixture.team1} vs ${fixture.team2} on this date.`);
-      }
-
-      // 1.2 Official availability conflict
-      const overlappingOfficials = officials.filter((official: string) => 
-        fixture.officials.map((o: string) => o.toLowerCase()).includes(official.toLowerCase())
-      );
-      if (overlappingOfficials.length > 0) {
-        conflicts.push(`Official Assignment Conflict: Match official(s) (${overlappingOfficials.join(', ')}) are already assigned to ${fixture.team1} vs ${fixture.team2} on this date.`);
-      }
-
-      // 1.3 Broadcast slot conflict
-      if (fixture.broadcastSlot.toLowerCase() === broadcastSlot.toLowerCase()) {
-        conflicts.push(`Broadcast Slot Conflict: Broadcast slot '${broadcastSlot}' is already allocated to ${fixture.team1} vs ${fixture.team2} on this date.`);
-      }
-    }
-
-    // If conflicts exist, return error response containing conflicts
-    if (conflicts.length > 0) {
-      res.status(409).json({
-        error: 'Scheduling Conflict Detected',
-        conflicts,
-      });
+    if (!Array.isArray(officials)) {
+      res.status(400).json({ error: 'Officials must be an array of strings' });
       return;
     }
 
-    // 2. Commit fixture to Firestore
-    const fixtureRef = db.collection('fixtures').doc();
-    const fixtureData = {
-      fixtureId: fixtureRef.id,
-      team1,
-      team2,
-      date,
-      time,
-      venue,
-      officials,
-      broadcastSlot,
-      createdAt: new Date(),
-    };
+    let fixtureData: any = null;
 
-    await fixtureRef.set(fixtureData);
+    try {
+      await db.runTransaction(async (transaction) => {
+        const query = db.collection('fixtures').where('date', '==', date);
+        const snapshot = await transaction.get(query);
+        
+        const existingFixtures: any[] = [];
+        snapshot.forEach(doc => {
+          existingFixtures.push({ id: doc.id, ...doc.data() });
+        });
+
+        const conflicts: string[] = [];
+
+        for (const fixture of existingFixtures) {
+          // 1.1 Venue double-booking conflict
+          if (fixture.venue && fixture.venue.toLowerCase() === venue.toLowerCase()) {
+            conflicts.push(`Venue Conflict: ${venue} is already booked for ${fixture.team1} vs ${fixture.team2} on this date.`);
+          }
+
+          // 1.2 Official availability conflict
+          if (Array.isArray(fixture.officials)) {
+            const overlappingOfficials = officials.filter((official: string) => 
+              fixture.officials.map((o: string) => o.toLowerCase()).includes(official.toLowerCase())
+            );
+            if (overlappingOfficials.length > 0) {
+              conflicts.push(`Official Assignment Conflict: Match official(s) (${overlappingOfficials.join(', ')}) are already assigned to ${fixture.team1} vs ${fixture.team2} on this date.`);
+            }
+          }
+
+          // 1.3 Broadcast slot conflict
+          if (fixture.broadcastSlot && fixture.broadcastSlot.toLowerCase() === broadcastSlot.toLowerCase()) {
+            conflicts.push(`Broadcast Slot Conflict: Broadcast slot '${broadcastSlot}' is already allocated to ${fixture.team1} vs ${fixture.team2} on this date.`);
+          }
+        }
+
+        // If conflicts exist, throw custom error to rollback transaction
+        if (conflicts.length > 0) {
+          const err = new Error('Scheduling Conflict Detected');
+          (err as any).statusCode = 409;
+          (err as any).conflicts = conflicts;
+          throw err;
+        }
+
+        // 2. Commit fixture to Firestore
+        const fixtureRef = db.collection('fixtures').doc();
+        fixtureData = {
+          fixtureId: fixtureRef.id,
+          team1,
+          team2,
+          date,
+          time,
+          venue,
+          officials,
+          broadcastSlot,
+          createdAt: new Date(),
+        };
+
+        transaction.set(fixtureRef, fixtureData);
+      });
+    } catch (txErr: any) {
+      if (txErr.statusCode === 409) {
+        res.status(409).json({
+          error: txErr.message,
+          conflicts: txErr.conflicts,
+        });
+        return;
+      }
+      throw txErr;
+    }
 
     res.status(201).json({
       message: 'Fixture scheduled successfully',

@@ -1,5 +1,5 @@
 import axios from 'axios';
-const BACKEND_URL = 'http://localhost:8082';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8082';
 
 jest.setTimeout(15000);
 

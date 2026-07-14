@@ -29,8 +29,6 @@ router.post('/chat', async (req: Request, res: Response): Promise<void> => {
  */
 router.post('/summarize', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { shiftId } = req.body;
-    
     // Fetch recent incidents from Firestore to summarize
     const snapshot = await db.collection('incidents')
       .orderBy('timestamp', 'desc')

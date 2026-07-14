@@ -21,6 +21,10 @@ export const onTicketScanPubSub = onMessagePublished('gate-scans', async (event)
     }
 
     const { ticketId, userId, seat, gate, scanTime } = messageData;
+    if (!ticketId || !gate) {
+      console.warn('Received message missing required ticketId or gate');
+      return;
+    }
     console.log(`Processing scan for Ticket: ${ticketId}, User: ${userId}, Gate: ${gate}`);
 
     const gateRef = db.collection('gateStats').doc(gate);

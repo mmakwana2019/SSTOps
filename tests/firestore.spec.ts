@@ -104,4 +104,23 @@ describe('Firestore Security Rules Unit Tests', () => {
     // Command succeeds
     await assertSucceeds(fixtureDocCmd.set(fixturePayload));
   });
+
+  it('denies a fan user from escalating their role to command (privilege escalation)', async () => {
+    const aliceContext = testEnv.authenticatedContext('alice_uid');
+    const db = aliceContext.firestore();
+
+    const selfDoc = db.collection('users').doc('alice_uid');
+
+    // 1. Try to set own profile with 'command' role - must fail
+    await assertFails(selfDoc.set({ name: 'Alice', role: 'command' }));
+
+    // 2. Setting own profile with 'fan' role - must succeed
+    await assertSucceeds(selfDoc.set({ name: 'Alice', role: 'fan' }));
+
+    // 3. Try to update role to 'command' - must fail
+    await assertFails(selfDoc.update({ role: 'command' }));
+
+    // 4. Updating other fields like name - must succeed
+    await assertSucceeds(selfDoc.update({ name: 'Alice Smith' }));
+  });
 });

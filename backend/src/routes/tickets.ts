@@ -70,27 +70,42 @@ router.post('/scan', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Fetch the ticket from Firestore to verify its current live state
     const ticketRef = db.collection('tickets').doc(ticketId);
-    const ticketDoc = await ticketRef.get();
 
-    if (!ticketDoc.exists) {
-      res.status(404).json({ error: 'Ticket not found in central registry' });
-      return;
+    try {
+      await db.runTransaction(async (transaction) => {
+        const ticketDoc = await transaction.get(ticketRef);
+        if (!ticketDoc.exists) {
+          const err = new Error('Ticket not found in central registry');
+          (err as any).statusCode = 404;
+          throw err;
+        }
+
+        const ticketData = ticketDoc.data();
+        if (ticketData?.status === 'scanned') {
+          const err = new Error('Fraud Alert: Ticket has already been processed at a gate');
+          (err as any).statusCode = 409;
+          throw err;
+        }
+
+        // 3. Mark ticket as scanned & commit to Firestore
+        transaction.update(ticketRef, {
+          status: 'scanned',
+          scanTime: adminFirestoreTimestamp(),
+        });
+      });
+    } catch (txErr: any) {
+      if (txErr.statusCode === 404) {
+        res.status(404).json({ error: txErr.message });
+        return;
+      }
+      if (txErr.statusCode === 409) {
+        scannedTicketCache.add(ticketId); // Sync cache
+        res.status(409).json({ error: txErr.message });
+        return;
+      }
+      throw txErr;
     }
-
-    const ticketData = ticketDoc.data();
-    if (ticketData?.status === 'scanned') {
-      scannedTicketCache.add(ticketId); // Sync cache
-      res.status(409).json({ error: 'Fraud Alert: Ticket has already been processed at a gate' });
-      return;
-    }
-
-    // 3. Mark ticket as scanned & commit to Firestore
-    await ticketRef.update({
-      status: 'scanned',
-      scanTime: adminFirestoreTimestamp(),
-    });
 
     // Add to Redis cache (expires after 1 hour in a real scenario)
     scannedTicketCache.add(ticketId);

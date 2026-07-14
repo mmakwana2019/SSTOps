@@ -27,8 +27,14 @@ service cloud.firestore {
 
     // User profiles
     match /users/{userId} {
-      allow read, write: if isAuth() && request.auth.uid == userId;
+      allow read: if isAuth() && request.auth.uid == userId;
       allow read: if isStaff();
+      allow create: if isAuth() && request.auth.uid == userId && 
+        (!('role' in request.resource.data) || request.resource.data.role == 'fan');
+      allow update: if isAuth() && request.auth.uid == userId && 
+        (!('role' in request.resource.data) || 
+         ('role' in resource.data && request.resource.data.role == resource.data.role));
+      allow delete: if isAuth() && request.auth.uid == userId;
     }
 
     // Tickets

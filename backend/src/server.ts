@@ -85,7 +85,7 @@ app.get('*', (req: Request, res: Response) => {
 });
 
 // Error handling middleware
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
   console.error(JSON.stringify({
     severity: 'ERROR',
     message: err.message,
@@ -94,9 +94,13 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   res.status(500).json({ error: 'Internal Server Error', details: err.message });
 });
 
-app.listen(PORT, () => {
-  console.log(JSON.stringify({
-    severity: 'INFO',
-    message: `Smart Stadiums Backend running on port ${PORT}`,
-  }));
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(JSON.stringify({
+      severity: 'INFO',
+      message: `Smart Stadiums Backend running on port ${PORT}`,
+    }));
+  });
+}
+
+export { app };

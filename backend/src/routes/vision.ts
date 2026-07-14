@@ -16,6 +16,11 @@ router.post('/crowd', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    if (typeof count !== 'number' || !Number.isInteger(count) || count < 0) {
+      res.status(400).json({ error: 'Count must be a non-negative integer' });
+      return;
+    }
+
     // Update Firestore with the new aggregate occupancy count
     const gateRef = db.collection('gateStats').doc(zoneId);
     await gateRef.set({
